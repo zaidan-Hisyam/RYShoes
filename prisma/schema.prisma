@@ -1,0 +1,125 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("DIRECT_URL")
+}
+
+model User {
+  id             Int      @id @default(autoincrement())
+  username       String   @unique
+  password       String
+  cart           Cart?
+  alamat_lengkap String
+  role           String   @default("USER")
+  createdAt      DateTime @default(now())
+  orders         Order[]
+}
+
+model Product {
+  id              Int            @id @default(autoincrement())
+  name            String
+  size            String?
+  price           Int
+  description     String
+  catalogImageUrl String
+  images          ProductImage[]
+  orderItems      OrderItem[]
+  cartItems       CartItem[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model ProductImage {
+  id        Int      @id @default(autoincrement())
+  url       String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId Int
+  createdAt DateTime @default(now())
+}
+
+model Order {
+  id             Int         @id @default(autoincrement())
+  user           User        @relation(fields: [userId], references: [id])
+  userId         Int
+  items          OrderItem[]
+  namaPenerima   String
+  nomorTelepon   String
+  email          String
+  provinsi       String
+  kota           String
+  kecamatan      String
+  alamatLengkap  String
+  kodePos        String
+  kurir          String
+  hargaProduk    Int
+  ongkir         Int
+  totalBayar     Int
+  status         OrderStatus @default(MENUNGGU_PEMBAYARAN)
+  payment        Payment?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  order     Order   @relation(fields: [orderId], references: [id])
+  orderId   Int
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int
+  quantity  Int
+  price     Int // Store price at time of purchase
+}
+
+model Payment {
+  id               Int           @id @default(autoincrement())
+  order            Order         @relation(fields: [orderId], references: [id])
+  orderId          Int           @unique
+  metodePembayaran String
+  buktiUrl         String?
+  waktuUpload      DateTime?
+  status           PaymentStatus @default(PENDING)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+model Cart {
+  id        Int        @id @default(autoincrement())
+  userId    Int        @unique
+  user      User       @relation(fields: [userId], references: [id])
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  items     CartItem[]
+}
+
+model CartItem {
+  id        Int      @id @default(autoincrement())
+  cart      Cart     @relation(fields: [cartId], references: [id])
+  cartId    Int
+  product   Product  @relation(fields: [productId], references: [id])
+  productId Int
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum OrderStatus {
+  MENUNGGU_PEMBAYARAN
+  MENUNGGU_VERIFIKASI
+  DIPROSES
+  DIKIRIM
+  SELESAI
+  DIBATALKAN
+}
+
+enum PaymentStatus {
+  PENDING
+  VERIFIED
+  FAILED
+}
